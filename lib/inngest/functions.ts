@@ -9,13 +9,12 @@ import {
 } from '@/lib/clustering';
 import { processNotifications } from '@/lib/notifications';
 
-// Main pipeline: runs every 10 minutes
 export const worldPulsePipeline = inngest.createFunction(
   {
     id: 'world-pulse-pipeline',
     name: 'World Pulse Pipeline',
   },
-  { cron: '*/30 * * * *' }, // Every 10 minutes
+  { cron: '5 * * * *' },
   async ({ step, logger }) => {
     logger.info('Starting World Pulse pipeline...');
 
