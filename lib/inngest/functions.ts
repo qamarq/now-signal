@@ -14,7 +14,7 @@ export const worldPulsePipeline = inngest.createFunction(
     id: 'world-pulse-pipeline',
     name: 'World Pulse Pipeline',
   },
-  { cron: '2 * * * *' },
+  { cron: '3 * * * *' },
   async ({ step, logger }) => {
     logger.info('Starting World Pulse pipeline...');
 
