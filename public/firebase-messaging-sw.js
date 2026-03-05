@@ -26,7 +26,7 @@ messaging.onBackgroundMessage((payload) => {
     payload,
   );
 
-  const notificationTitle = payload.notification?.title || 'World Pulse Alert';
+  const notificationTitle = payload.notification?.title || 'Now Signal Alert';
   const notificationOptions = {
     body: payload.notification?.body || 'New event detected',
     icon: payload.notification?.icon || '/icon-192x192.png',

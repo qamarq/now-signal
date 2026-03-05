@@ -143,16 +143,21 @@ export async function suggestThreadMerge(
   }
 
   try {
+    // Create a mapping of index to full ID
+    const indexToId = new Map<number, string>();
+    
     const clustersSummary = clusters
       .map(
-        (c, i) =>
-          `${i + 1}. [${c.id.slice(0, 8)}] ${c.hypothesis || "Unknown"} (${c.category}, ${c.regions.join(", ")})`
+        (c, i) => {
+          indexToId.set(i, c.id);
+          return `${i}. ${c.hypothesis || "Unknown"} (${c.category}, ${c.regions.join(", ")})`;
+        }
       )
       .join("\n");
 
     const prompt = `You are an AI that helps identify related news events that should be grouped into threads/storylines.
 
-Event Clusters:
+Event Clusters (numbered 0-${clusters.length - 1}):
 ${clustersSummary}
 
 Task: Identify which clusters are part of the same ongoing story/thread. Consider:
@@ -160,17 +165,21 @@ Task: Identify which clusters are part of the same ongoing story/thread. Conside
 - Related political developments
 - Connected incidents in same region
 - Cause-and-effect relationships
+- DO NOT merge clusters that are completely unrelated even if they share category/region
 
-Respond in JSON format with an array of thread suggestions:
+Respond in JSON format with an array of thread suggestions. Use cluster numbers (0-${clusters.length - 1}) in clusterIndices array:
 {
   "threads": [
     {
-      "clusterIds": ["id1", "id2"],
+      "clusterIndices": [0, 1, 2],
       "threadName": "descriptive thread name",
-      "confidence": number (0-100)
+      "confidence": number (0-100),
+      "reasoning": "brief explanation why these should merge"
     }
   ]
-}`;
+}
+
+IMPORTANT: Only suggest merges with confidence >= 75. Be conservative - it's better to not merge than to merge unrelated events.`;
 
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
@@ -178,20 +187,29 @@ Respond in JSON format with an array of thread suggestions:
         {
           role: "system",
           content:
-            "You are an expert at identifying connections between news events. Respond only with valid JSON.",
+            "You are an expert at identifying connections between news events. Be conservative and only merge clearly related events. Respond only with valid JSON.",
         },
         { role: "user", content: prompt },
       ],
-      temperature: 0.3,
-      max_tokens: 500,
+      temperature: 0.2,
+      max_tokens: 800,
       response_format: { type: "json_object" },
     });
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
 
-    return (result.threads || []).filter(
-      (t: { confidence: number }) => t.confidence >= 60
-    );
+    // Convert indices back to IDs and filter by confidence
+    return (result.threads || [])
+      .filter((t: { confidence: number; clusterIndices: number[] }) => 
+        t.confidence >= 75 && Array.isArray(t.clusterIndices) && t.clusterIndices.length >= 2
+      )
+      .map((t: { clusterIndices: number[]; threadName: string; confidence: number; reasoning?: string }) => ({
+        clusterIds: t.clusterIndices.map(idx => indexToId.get(idx)).filter(Boolean) as string[],
+        threadName: t.threadName,
+        confidence: t.confidence,
+        reasoning: t.reasoning,
+      }))
+      .filter((t: { clusterIds: string[] }) => t.clusterIds.length >= 2);
   } catch (error) {
     console.error("Error in AI thread merging:", error);
     return [];

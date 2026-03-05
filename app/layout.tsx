@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'World Pulse - Global Event Detection',
+  title: 'Now Signal - Global Event Detection',
   description:
     "Real-time global event detection and notifications. Know what's happening in the world before everyone else.",
 };

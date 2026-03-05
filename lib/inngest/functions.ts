@@ -9,14 +9,14 @@ import {
 } from '@/lib/clustering';
 import { processNotifications } from '@/lib/notifications';
 
-export const worldPulsePipeline = inngest.createFunction(
+export const nowSignalPipeline = inngest.createFunction(
   {
-    id: 'world-pulse-pipeline',
-    name: 'World Pulse Pipeline',
+    id: 'now-signal-pipeline',
+    name: 'Now Signal Pipeline',
   },
   { cron: '3 * * * *' },
   async ({ step, logger }) => {
-    logger.info('Starting World Pulse pipeline...');
+    logger.info('Starting Now Signal pipeline...');
 
     // Step 1: Fetch and ingest RSS feeds
     const ingestResult = await step.run('ingest-rss', async () => {
@@ -90,10 +90,10 @@ export const worldPulsePipeline = inngest.createFunction(
 // Manual trigger for testing
 export const manualPipelineTrigger = inngest.createFunction(
   {
-    id: 'world-pulse-manual',
-    name: 'World Pulse Manual Trigger',
+    id: 'now-signal-manual',
+    name: 'Now Signal Manual Trigger',
   },
-  { event: 'world-pulse/manual-run' },
+  { event: 'now-signal/manual-run' },
   async ({ step, logger }) => {
     logger.info('Manual pipeline trigger...');
 
@@ -166,7 +166,7 @@ export const cleanupExpiredClusters = inngest.createFunction(
 
 // Export all functions
 export const functions = [
-  worldPulsePipeline,
+  nowSignalPipeline,
   manualPipelineTrigger,
   cleanupExpiredClusters,
 ];

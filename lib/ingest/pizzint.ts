@@ -52,7 +52,7 @@ export async function fetchPizzintData(): Promise<PizzintData | null> {
   try {
     const response = await fetch(`${PIZZINT_API_URL}?_t=${Date.now()}`, {
       headers: {
-        "User-Agent": "WorldPulse/1.0",
+        "User-Agent": "NowSignal/1.0",
       },
       next: { revalidate: 0 },
     });

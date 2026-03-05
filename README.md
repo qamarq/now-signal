@@ -1,4 +1,4 @@
-# World Pulse MVP
+# Now Signal MVP
 
 Real-time global event detection and notification system built with Next.js, Postgres, Better Auth, shadcn/ui, Inngest, and Firebase Cloud Messaging.
 
@@ -48,7 +48,7 @@ Edit `.env` with your values:
 
 ```env
 # Database (default works with docker-compose)
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/world_pulse"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/now_signal"
 
 # Better Auth (generate a secret)
 BETTER_AUTH_SECRET="your-secret-here"
@@ -166,8 +166,8 @@ curl -X POST http://localhost:3000/api/mock/publish \
 The pipeline runs automatically every 10 minutes via Inngest. You can trigger it manually:
 
 1. Open Inngest Dev UI at http://localhost:8288
-2. Go to Functions > world-pulse-manual
-3. Send an event: `{ "name": "world-pulse/manual-run", "data": {} }`
+2. Go to Functions > now-signal-manual
+3. Send an event: `{ "name": "now-signal/manual-run", "data": {} }`
 
 ## Project Structure
 

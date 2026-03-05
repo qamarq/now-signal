@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       .values({
         source: "mock",
         publishedAt,
-        url: data.url || `https://mock.worldpulse.local/${hash}`,
+        url: data.url || `https://mock.nowsignal.local/${hash}`,
         title: data.title,
         content: data.content || null,
         lang: "en",
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
         .values({
           source: "mock",
           publishedAt,
-          url: `https://mock.worldpulse.local/${hash}`,
+          url: `https://mock.nowsignal.local/${hash}`,
           title: `${title} (${i + 1})`,
           content: `This is a mock signal for testing purposes. Category: ${category}, Region: ${region}`,
           lang: "en",

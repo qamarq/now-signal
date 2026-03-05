@@ -6,7 +6,7 @@ import { extractEntities } from "./ner";
 const parser = new Parser({
   timeout: 10000,
   headers: {
-    "User-Agent": "WorldPulse/1.0 (RSS Reader)",
+    "User-Agent": "NowSignal/1.0 (RSS Reader)",
   },
 });
 

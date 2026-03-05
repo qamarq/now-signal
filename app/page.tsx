@@ -12,7 +12,7 @@ export default function HomePage() {
             <Globe className="h-16 w-16 text-primary" />
           </div>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            World Pulse
+            Now Signal
           </h1>
           <p className="text-xl text-muted-foreground">
             Real-time global event detection and notifications.
@@ -65,7 +65,7 @@ export default function HomePage() {
           Stay Informed, Stay Ahead
         </h2>
         <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-          Join World Pulse to receive real-time alerts about global events
+          Join Now Signal to receive real-time alerts about global events
           that matter to you.
         </p>
         <Link href="/register">
@@ -76,7 +76,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t py-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>World Pulse MVP - Global Event Detection System</p>
+          <p>Now Signal MVP - Global Event Detection System</p>
         </div>
       </footer>
     </div>

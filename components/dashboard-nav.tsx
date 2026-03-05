@@ -42,7 +42,7 @@ export function DashboardNav({ user }: { user: User }) {
       <div className="container mx-auto flex h-14 items-center px-4">
         <div className="flex items-center gap-2 mr-6">
           <Globe className="h-6 w-6" />
-          <span className="font-bold text-lg">World Pulse</span>
+          <span className="font-bold text-lg">Now Signal</span>
         </div>
 
         <nav className="flex items-center gap-1 flex-1">

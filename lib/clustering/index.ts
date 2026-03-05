@@ -304,8 +304,21 @@ export async function mergeSimilarClusters(): Promise<{
         }))
       );
 
+      console.log(`AI suggested ${mergesuggestions.length} merge operations for category ${groupKey}`);
+
       for (const suggestion of mergesuggestions) {
-        if (suggestion.clusterIds.length < 2 || suggestion.confidence < 70) {
+        console.log(`Merge suggestion: "${suggestion.threadName}" (confidence: ${suggestion.confidence}%, clusters: ${suggestion.clusterIds.length})`);
+        if ('reasoning' in suggestion) {
+          console.log(`  Reasoning: ${(suggestion as any).reasoning}`);
+        }
+
+        if (suggestion.clusterIds.length < 2) {
+          console.log(`  Skipped: Less than 2 clusters`);
+          continue;
+        }
+
+        if (suggestion.confidence < 70) {
+          console.log(`  Skipped: Confidence too low (${suggestion.confidence}% < 70%)`);
           continue;
         }
 
@@ -314,7 +327,10 @@ export async function mergeSimilarClusters(): Promise<{
           suggestion.clusterIds.includes(c.id)
         );
 
-        if (clustersToMerge.length < 2) continue;
+        if (clustersToMerge.length < 2) {
+          console.log(`  Skipped: Could not find matching clusters (found ${clustersToMerge.length})`);
+          continue;
+        }
 
         // Pick the cluster with most signals as the primary
         const primaryCluster = clustersToMerge.reduce((best, current) => {

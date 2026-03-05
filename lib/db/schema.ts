@@ -84,7 +84,7 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)]
 );
 
-// ============== World Pulse tables ==============
+// ============== Now Signal tables ==============
 
 // Subscriptions - user preferences for notifications
 export const subscriptions = pgTable(
