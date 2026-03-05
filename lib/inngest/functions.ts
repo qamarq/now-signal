@@ -14,7 +14,7 @@ export const nowSignalPipeline = inngest.createFunction(
     id: 'now-signal-pipeline',
     name: 'Now Signal Pipeline',
   },
-  { cron: '3 * * * *' },
+  { cron: '1 */4 * * *' },
   async ({ step, logger }) => {
     logger.info('Starting Now Signal pipeline...');
 
