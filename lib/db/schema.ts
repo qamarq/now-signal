@@ -102,6 +102,7 @@ export const subscriptions = pgTable(
     quietHoursStart: smallint("quiet_hours_start"), // 0-23 hour
     quietHoursEnd: smallint("quiet_hours_end"), // 0-23 hour
     maxPushPerDay: smallint("max_push_per_day").notNull().default(10),
+    discordWebhook: text("discord_webhook"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

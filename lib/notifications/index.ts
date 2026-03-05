@@ -9,6 +9,7 @@ import { eq, gte, and, or, sql, inArray, not, lt } from "drizzle-orm";
 import { sendPushNotification, cleanupInvalidTokens } from "@/lib/firebase-admin";
 import { shouldNotifyUser, isMajorUpdate } from "@/lib/clustering/scoring";
 import { SENSITIVITY_THRESHOLDS } from "@/lib/constants";
+import { sendDiscordNotification } from "@/lib/discord";
 
 const NOTIFICATION_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 const MAJOR_UPDATE_COOLDOWN_MS = 60 * 60 * 1000; // 60 minutes
@@ -157,6 +158,7 @@ interface MatchingUser {
   userId: string;
   subscription: typeof subscriptions.$inferSelect;
   deviceTokens: string[];
+  discordWebhook: string | null;
 }
 
 async function findMatchingUsers(
@@ -224,11 +226,12 @@ async function findMatchingUsers(
       .from(devices)
       .where(eq(devices.userId, sub.userId));
 
-    if (userDevices.length > 0) {
+    if (userDevices.length > 0 || sub.discordWebhook) {
       matchingUsers.push({
         userId: sub.userId,
         subscription: sub,
         deviceTokens: userDevices.map((d) => d.fcmToken),
+        discordWebhook: sub.discordWebhook,
       });
     }
   }
@@ -307,26 +310,44 @@ async function sendUserNotification(
   cluster: typeof eventClusters.$inferSelect,
   type: "confirmed" | "early" | "major_update"
 ): Promise<{ sent: boolean }> {
-  const title = formatNotificationTitle(cluster, type);
-  const body = formatNotificationBody(cluster);
+  let pushSuccess = false;
+  let discordSuccess = false;
 
-  const result = await sendPushNotification(user.deviceTokens, {
-    title,
-    body,
-    data: {
-      clusterId: cluster.id,
-      status: cluster.status,
-      url: `/events/${cluster.id}`,
-    },
-  });
+  // Send push notification if user has devices
+  if (user.deviceTokens.length > 0) {
+    const title = formatNotificationTitle(cluster, type);
+    const body = formatNotificationBody(cluster);
 
-  // Clean up invalid tokens
-  if (result.failedTokens.length > 0) {
-    await cleanupInvalidTokens(result.failedTokens);
+    const result = await sendPushNotification(user.deviceTokens, {
+      title,
+      body,
+      data: {
+        clusterId: cluster.id,
+        status: cluster.status,
+        url: `/events/${cluster.id}`,
+      },
+    });
+
+    // Clean up invalid tokens
+    if (result.failedTokens.length > 0) {
+      await cleanupInvalidTokens(result.failedTokens);
+    }
+
+    pushSuccess = result.success > 0;
   }
 
-  // Log notification
-  if (result.success > 0) {
+  // Send Discord notification if webhook is configured
+  if (user.discordWebhook) {
+    const discordResult = await sendDiscordNotification(
+      user.discordWebhook,
+      cluster,
+      type
+    );
+    discordSuccess = discordResult.success;
+  }
+
+  // Log notification if at least one method succeeded
+  if (pushSuccess || discordSuccess) {
     const dedupeKey = `${user.userId}:${cluster.id}:${type}:${Date.now()}`;
 
     await db.insert(notificationLog).values({

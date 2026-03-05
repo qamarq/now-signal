@@ -8,6 +8,13 @@
       "when": 1772663940929,
       "tag": "0000_hot_omega_red",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772721602289,
+      "tag": "0001_bizarre_starjammers",
+      "breakpoints": true
     }
   ]
 }

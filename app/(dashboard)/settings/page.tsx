@@ -54,8 +54,11 @@ export default async function SettingsPage() {
         <Separator />
 
         <section>
-          <h2 className="text-xl font-semibold mb-4">Push Notifications</h2>
-          <NotificationSettings userId={session.user.id} />
+          <h2 className="text-xl font-semibold mb-4">Notifications</h2>
+          <NotificationSettings 
+            userId={session.user.id}
+            discordWebhook={subscription.discordWebhook}
+          />
         </section>
       </div>
     </div>
