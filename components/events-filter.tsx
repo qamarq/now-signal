@@ -21,8 +21,8 @@ const statusOptions = [
 ];
 
 const sortOptions = [
-  { value: 'time', label: 'Latest First' },
   { value: 'confidence', label: 'Confidence' },
+  { value: 'time', label: 'Latest First' },
   { value: 'earlyScore', label: 'Early Score' },
   { value: 'confirmScore', label: 'Confirm Score' },
 ];
@@ -31,7 +31,7 @@ function EventsFilterInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentStatus = searchParams.get('status') || 'for-you';
-  const currentSort = searchParams.get('sort') || 'time';
+  const currentSort = searchParams.get('sort') || 'confidence';
 
   const handleStatusChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
