@@ -1,4 +1,4 @@
-import { eventClusters } from "@/lib/db";
+import { eventClusters } from '@/lib/db';
 
 interface DiscordEmbed {
   title: string;
@@ -22,25 +22,28 @@ interface DiscordWebhookPayload {
 export async function sendDiscordNotification(
   webhookUrl: string,
   cluster: typeof eventClusters.$inferSelect,
-  type: "confirmed" | "early" | "major_update"
+  type: 'confirmed' | 'early' | 'major_update',
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const embed = createDiscordEmbed(cluster, type);
-    const payload: DiscordWebhookPayload = {
+    const payload = {
+      username: 'Now Signal',
+      avatar_url:
+        'https://img.freepik.com/premium-vector/satellite-icon-logo-design-illustration_775854-66.jpg',
       embeds: [embed],
     };
 
     const response = await fetch(webhookUrl, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Discord webhook error:", errorText);
+      console.error('Discord webhook error:', errorText);
       return {
         success: false,
         error: `Discord API error: ${response.status} ${response.statusText}`,
@@ -49,17 +52,17 @@ export async function sendDiscordNotification(
 
     return { success: true };
   } catch (error) {
-    console.error("Error sending Discord notification:", error);
+    console.error('Error sending Discord notification:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
 
 function createDiscordEmbed(
   cluster: typeof eventClusters.$inferSelect,
-  type: "confirmed" | "early" | "major_update"
+  type: 'confirmed' | 'early' | 'major_update',
 ): DiscordEmbed {
   // Kolory dla różnych typów
   const colors = {
@@ -69,9 +72,9 @@ function createDiscordEmbed(
   };
 
   const typeLabels = {
-    confirmed: "CONFIRMED EVENT",
-    early: "EARLY SIGNAL",
-    major_update: "MAJOR UPDATE",
+    confirmed: 'CONFIRMED EVENT',
+    early: 'EARLY SIGNAL',
+    major_update: 'MAJOR UPDATE',
   };
 
   const evidence = cluster.evidence as {
@@ -81,19 +84,19 @@ function createDiscordEmbed(
     keywords?: string[];
   } | null;
 
-  const fields: DiscordEmbed["fields"] = [
+  const fields: DiscordEmbed['fields'] = [
     {
-      name: "Category",
+      name: 'Category',
       value: cluster.category,
       inline: true,
     },
     {
-      name: "Regions",
-      value: cluster.regions.join(", ") || "N/A",
+      name: 'Regions',
+      value: cluster.regions.join(', ') || 'N/A',
       inline: true,
     },
     {
-      name: "Confidence",
+      name: 'Confidence',
       value: `${cluster.confidence}%`,
       inline: true,
     },
@@ -102,22 +105,22 @@ function createDiscordEmbed(
   if (evidence) {
     if (evidence.signalCount) {
       fields.push({
-        name: "Signal Count",
+        name: 'Signal Count',
         value: String(evidence.signalCount),
         inline: true,
       });
     }
     if (evidence.uniqueDomains && evidence.uniqueDomains.length > 0) {
       fields.push({
-        name: "Sources",
-        value: evidence.uniqueDomains.slice(0, 3).join(", "),
+        name: 'Sources',
+        value: evidence.uniqueDomains.slice(0, 3).join(', '),
         inline: true,
       });
     }
     if (evidence.keywords && evidence.keywords.length > 0) {
       fields.push({
-        name: "Keywords",
-        value: evidence.keywords.slice(0, 5).join(", "),
+        name: 'Keywords',
+        value: evidence.keywords.slice(0, 5).join(', '),
         inline: false,
       });
     }
@@ -125,53 +128,61 @@ function createDiscordEmbed(
 
   return {
     title: typeLabels[type],
-    description: cluster.hypothesis || "Developing event detected",
+    description: cluster.hypothesis || 'Developing event detected',
     color: colors[type],
     fields,
     timestamp: new Date().toISOString(),
     footer: {
-      text: "Now Signal",
+      text: 'Now Signal',
     },
   };
 }
 
 export async function testDiscordWebhook(
-  webhookUrl: string
+  webhookUrl: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const testEmbed: DiscordEmbed = {
-      title: "Test Connection",
-      description: "This is a test message from Now Signal. Your Discord webhook is configured correctly!",
+      title: 'Test Connection',
+      description:
+        'This is a test message from Now Signal. Your Discord webhook is configured correctly!',
       color: 0x22c55e, // zielony
       fields: [
         {
-          name: "Status",
-          value: "Connected",
+          name: 'Status',
+          value: 'Connected',
           inline: true,
         },
         {
-          name: "Timestamp",
+          name: 'Timestamp',
           value: new Date().toLocaleString(),
           inline: true,
         },
       ],
       timestamp: new Date().toISOString(),
       footer: {
-        text: "Now Signal",
+        text: 'Now Signal',
       },
     };
 
+    const payload = {
+      username: 'Now Signal',
+      avatar_url:
+        'https://img.freepik.com/premium-vector/satellite-icon-logo-design-illustration_775854-66.jpg',
+      embeds: [testEmbed],
+    };
+
     const response = await fetch(webhookUrl, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ embeds: [testEmbed] }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Discord webhook test error:", errorText);
+      console.error('Discord webhook test error:', errorText);
       return {
         success: false,
         error: `Discord API error: ${response.status} ${response.statusText}`,
@@ -180,10 +191,10 @@ export async function testDiscordWebhook(
 
     return { success: true };
   } catch (error) {
-    console.error("Error testing Discord webhook:", error);
+    console.error('Error testing Discord webhook:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
