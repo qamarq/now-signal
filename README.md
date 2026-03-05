@@ -54,7 +54,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/world_pulse"
 BETTER_AUTH_SECRET="your-secret-here"
 BETTER_AUTH_URL="http://localhost:3000"
 
-# Firebase (from Firebase Console > Project Settings)
+# Firebase Client (from Firebase Console > Project Settings)
 NEXT_PUBLIC_FIREBASE_API_KEY="..."
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="..."
 NEXT_PUBLIC_FIREBASE_PROJECT_ID="..."
@@ -62,11 +62,6 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="..."
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
 NEXT_PUBLIC_FIREBASE_APP_ID="..."
 NEXT_PUBLIC_FIREBASE_VAPID_KEY="..." # Cloud Messaging > Web Push certificates
-
-# Firebase Admin (from Service Account JSON)
-FIREBASE_ADMIN_PROJECT_ID="..."
-FIREBASE_ADMIN_CLIENT_EMAIL="..."
-FIREBASE_ADMIN_PRIVATE_KEY="..." # Copy the private key including -----BEGIN/END-----
 
 # RSS Feeds
 RSS_FEEDS="https://feeds.bbci.co.uk/news/world/rss.xml,https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
@@ -106,14 +101,51 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ## Firebase Setup (Push Notifications)
 
+### Client Configuration
+
 1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
 2. Enable Cloud Messaging
 3. Go to Project Settings > General > Your apps > Add web app
-4. Copy the config values to your `.env`
+4. Copy the config values to your `.env` (NEXT_PUBLIC_FIREBASE_* variables)
 5. Go to Cloud Messaging > Web Push certificates > Generate key pair
 6. Copy the VAPID key to `NEXT_PUBLIC_FIREBASE_VAPID_KEY`
-7. Go to Project Settings > Service accounts > Generate new private key
-8. Copy `project_id`, `client_email`, and `private_key` to your `.env`
+
+### Service Worker Configuration
+
+7. Edit `public/firebase-messaging-sw.js` and replace the placeholder values with your Firebase config:
+   ```javascript
+   const firebaseConfig = {
+     apiKey: "YOUR_API_KEY",
+     authDomain: "YOUR_AUTH_DOMAIN",
+     projectId: "YOUR_PROJECT_ID",
+     storageBucket: "YOUR_STORAGE_BUCKET",
+     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+     appId: "YOUR_APP_ID",
+   };
+   ```
+
+### Server-side Admin SDK Configuration
+
+#### Option A: Local Development (firebase-admin.json)
+
+8. Go to Project Settings > Service accounts > Generate new private key
+9. Download the JSON file
+10. Rename it to `firebase-admin.json` and place it in your project root
+11. This file is gitignored for security - never commit it to version control!
+
+#### Option B: Production/Vercel (Environment Variables)
+
+8. Go to Project Settings > Service accounts > Generate new private key
+9. Download and open the JSON file
+10. In Vercel dashboard > Your Project > Settings > Environment Variables, add:
+    - `FIREBASE_ADMIN_PROJECT_ID` → copy `project_id` from JSON
+    - `FIREBASE_ADMIN_CLIENT_EMAIL` → copy `client_email` from JSON
+    - `FIREBASE_ADMIN_PRIVATE_KEY` → copy entire `private_key` from JSON (including `-----BEGIN/END PRIVATE KEY-----`)
+11. The code will automatically use env vars if found, otherwise fallback to `firebase-admin.json`
+
+**Important for FIREBASE_ADMIN_PRIVATE_KEY on Vercel:**
+- Copy the entire private key including the BEGIN and END markers
+- Vercel will handle the newlines automatically - just paste the value as-is from the JSON file
 
 ## Testing
 
