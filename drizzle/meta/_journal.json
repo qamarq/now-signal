@@ -15,6 +15,13 @@
       "when": 1772721602289,
       "tag": "0001_bizarre_starjammers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772783684095,
+      "tag": "0002_absurd_frog_thor",
+      "breakpoints": true
     }
   ]
 }

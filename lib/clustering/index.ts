@@ -1,8 +1,17 @@
-import crypto from "crypto";
-import { db, signals, eventClusters, clusterSignals as clusterSignalsTable } from "@/lib/db";
-import { eq, gte, desc } from "drizzle-orm";
-import { calculateEarlyScore, calculateConfirmScore, determineStatus } from "./scoring";
-import { generateHypothesis } from "@/lib/ai/matching";
+import crypto from 'crypto';
+import {
+  db,
+  signals,
+  eventClusters,
+  clusterSignals as clusterSignalsTable,
+} from '@/lib/db';
+import { eq, gte, desc } from 'drizzle-orm';
+import {
+  calculateEarlyScore,
+  calculateConfirmScore,
+  determineStatus,
+} from './scoring';
+import { generateHypothesis } from '@/lib/ai/matching';
 
 // Time bucket: 4 hours (for grouping signals into clusters)
 const TIME_BUCKET_MS = 4 * 60 * 60 * 1000;
@@ -14,13 +23,13 @@ export function getTimeBucket(date: Date): number {
 export function createClusterKey(
   category: string,
   regions: string[],
-  timeBucket: number
+  timeBucket: number,
 ): string {
-  const sortedRegions = [...regions].sort().join(",");
+  const sortedRegions = [...regions].sort().join(',');
   return crypto
-    .createHash("sha256")
+    .createHash('sha256')
     .update(`${category}:${sortedRegions}:${timeBucket}`)
-    .digest("hex")
+    .digest('hex')
     .slice(0, 32);
 }
 
@@ -59,7 +68,7 @@ export async function clusterSignals(): Promise<{
 
   // Filter to unclustered signals only
   const unclusteredSignals = recentSignals.filter(
-    (s) => !clusteredSignalIds.has(s.id)
+    (s) => !clusteredSignalIds.has(s.id),
   );
 
   let processed = 0;
@@ -69,9 +78,9 @@ export async function clusterSignals(): Promise<{
   const clusterCache = new Map<string, string>(); // clusterKey -> clusterId
 
   for (const signal of unclusteredSignals) {
-    const entities = signal.entities as SignalWithEntities["entities"];
-    const category = entities?.category || "other";
-    const regions = entities?.regions || ["GLOBAL"];
+    const entities = signal.entities as SignalWithEntities['entities'];
+    const category = entities?.category || 'other';
+    const regions = entities?.regions || ['GLOBAL'];
     const timeBucket = getTimeBucket(signal.publishedAt);
     const clusterKey = createClusterKey(category, regions, timeBucket);
 
@@ -92,7 +101,7 @@ export async function clusterSignals(): Promise<{
       } else {
         // Create new cluster
         const now = new Date();
-        const ttlExpires = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24h TTL
+        const ttlExpires = new Date(now.getTime() + 72 * 60 * 60 * 1000); // 72h TTL
 
         const [newCluster] = await db
           .insert(eventClusters)
@@ -102,7 +111,7 @@ export async function clusterSignals(): Promise<{
             lastSeen: signal.publishedAt,
             category,
             regions,
-            status: "early",
+            status: 'early',
             confidence: 0,
             earlyScore: 0,
             confirmScore: 0,
@@ -134,16 +143,18 @@ export async function clusterSignals(): Promise<{
 
       // Update cluster metadata
       await updateClusterMetadata(clusterId);
+
+      await detectAndCreateSubClusters(clusterId);
     } catch (error) {
       // Ignore duplicate key errors
-      if (!(error instanceof Error && error.message.includes("unique"))) {
-        console.error("Error linking signal to cluster:", error);
+      if (!(error instanceof Error && error.message.includes('unique'))) {
+        console.error('Error linking signal to cluster:', error);
       }
     }
   }
 
   console.log(
-    `Clustering complete: ${processed} signals processed, ${clustersCreated} clusters created, ${clustersUpdated} clusters updated`
+    `Clustering complete: ${processed} signals processed, ${clustersCreated} clusters created, ${clustersUpdated} clusters updated`,
   );
 
   return { processed, clustersCreated, clustersUpdated };
@@ -169,7 +180,7 @@ async function updateClusterMetadata(clusterId: string) {
   const allKeywords = new Set<string>();
 
   for (const signal of signalList) {
-    const entities = signal.entities as SignalWithEntities["entities"];
+    const entities = signal.entities as SignalWithEntities['entities'];
     if (entities?.keywords) {
       entities.keywords.forEach((k) => allKeywords.add(k));
     }
@@ -177,16 +188,16 @@ async function updateClusterMetadata(clusterId: string) {
 
   // Get the most recent signal title as hypothesis
   const sortedByDate = [...signalList].sort(
-    (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
+    (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime(),
   );
-  
+
   // Use AI to generate better hypothesis if we have multiple signals
   let hypothesis = sortedByDate[0].title;
   if (signalList.length >= 3) {
     try {
       hypothesis = await generateHypothesis(signalList);
     } catch (error) {
-      console.error("Error generating AI hypothesis:", error);
+      console.error('Error generating AI hypothesis:', error);
     }
   }
 
@@ -221,13 +232,116 @@ async function updateClusterMetadata(clusterId: string) {
 function extractDomain(url: string): string {
   try {
     const urlObj = new URL(url);
-    return urlObj.hostname.replace(/^www\./, "");
+    return urlObj.hostname.replace(/^www\./, '');
   } catch {
-    return "unknown";
+    return 'unknown';
   }
 }
 
-// Re-score all active clusters (called periodically)
+async function detectAndCreateSubClusters(
+  parentClusterId: string,
+): Promise<number> {
+  const parentCluster = await db
+    .select()
+    .from(eventClusters)
+    .where(eq(eventClusters.id, parentClusterId))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!parentCluster || parentCluster.depth >= 4) {
+    return 0;
+  }
+
+  const clusterSignalRows = await db
+    .select({
+      signal: signals,
+    })
+    .from(clusterSignalsTable)
+    .innerJoin(signals, eq(clusterSignalsTable.signalId, signals.id))
+    .where(eq(clusterSignalsTable.clusterId, parentClusterId));
+
+  const signalList = clusterSignalRows.map((r) => r.signal);
+
+  if (signalList.length < 6) {
+    return 0;
+  }
+
+  const { detectSubEvents } = await import('@/lib/ai/matching');
+
+  try {
+    const subEvents = await detectSubEvents(signalList);
+
+    let created = 0;
+
+    for (const subEvent of subEvents) {
+      if (subEvent.signalIds.length < 3) continue;
+
+      const subSignals = signalList.filter((s) =>
+        subEvent.signalIds.includes(s.id),
+      );
+      const domains = [...new Set(subSignals.map((s) => extractDomain(s.url)))];
+
+      if (domains.length < 3) continue;
+
+      const existingSubCluster = await db
+        .select()
+        .from(eventClusters)
+        .where(eq(eventClusters.parentClusterId, parentClusterId))
+        .then((rows) =>
+          rows.find((c) => {
+            const hyp = c.hypothesis?.toLowerCase() || '';
+            return hyp.includes(subEvent.topic.toLowerCase().slice(0, 20));
+          }),
+        );
+
+      if (existingSubCluster) continue;
+
+      const now = new Date();
+      const ttlExpires = new Date(now.getTime() + 72 * 60 * 60 * 1000);
+
+      const [newSubCluster] = await db
+        .insert(eventClusters)
+        .values({
+          clusterKey: crypto.randomUUID(),
+          parentClusterId: parentClusterId,
+          depth: parentCluster.depth + 1,
+          firstSeen: subSignals[0].publishedAt,
+          lastSeen: subSignals[subSignals.length - 1].publishedAt,
+          category: parentCluster.category,
+          regions: parentCluster.regions,
+          status: 'early',
+          confidence: 0,
+          earlyScore: 0,
+          confirmScore: 0,
+          hypothesis: subEvent.topic,
+          evidence: {
+            sources: subSignals.map((s) => s.url),
+            signalCount: subSignals.length,
+            uniqueDomains: domains,
+            keywords: [],
+          },
+          ttlExpiresAt: ttlExpires,
+        })
+        .returning();
+
+      for (const signal of subSignals) {
+        await db
+          .update(clusterSignalsTable)
+          .set({ clusterId: newSubCluster.id })
+          .where(eq(clusterSignalsTable.signalId, signal.id));
+      }
+
+      await updateClusterMetadata(newSubCluster.id);
+      created++;
+    }
+
+    return created;
+  } catch (error) {
+    console.error('Error detecting sub-clusters:', error);
+    return 0;
+  }
+}
+
 export async function rescoreAllClusters(): Promise<number> {
   const activeClusters = await db
     .select()
@@ -258,10 +372,9 @@ export async function mergeSimilarClusters(): Promise<{
   merged: number;
   threads: number;
 }> {
-  const { suggestThreadMerge } = await import("@/lib/ai/matching");
-  const { inArray } = await import("drizzle-orm");
+  const { suggestThreadMerge } = await import('@/lib/ai/matching');
 
-  // Get active clusters from last 24 hours that aren't already merged
+  // Get active clusters from last 72 hours that aren't already merged
   const recentClusters = await db
     .select()
     .from(eventClusters)
@@ -274,11 +387,11 @@ export async function mergeSimilarClusters(): Promise<{
 
   // Group clusters by category + region for more targeted merging
   const clusterGroups = new Map<string, typeof recentClusters>();
-  
+
   for (const cluster of recentClusters) {
     // Create a loose grouping key (just category)
     const groupKey = cluster.category;
-    
+
     const existing = clusterGroups.get(groupKey) || [];
     existing.push(cluster);
     clusterGroups.set(groupKey, existing);
@@ -301,15 +414,19 @@ export async function mergeSimilarClusters(): Promise<{
           hypothesis: c.hypothesis,
           category: c.category,
           regions: c.regions,
-        }))
+        })),
       );
 
-      console.log(`AI suggested ${mergesuggestions.length} merge operations for category ${groupKey}`);
+      console.log(
+        `AI suggested ${mergesuggestions.length} merge operations for category ${groupKey}`,
+      );
 
       for (const suggestion of mergesuggestions) {
-        console.log(`Merge suggestion: "${suggestion.threadName}" (confidence: ${suggestion.confidence}%, clusters: ${suggestion.clusterIds.length})`);
+        console.log(
+          `Merge suggestion: "${suggestion.threadName}" (confidence: ${suggestion.confidence}%, clusters: ${suggestion.clusterIds.length})`,
+        );
         if ('reasoning' in suggestion) {
-          console.log(`  Reasoning: ${(suggestion as any).reasoning}`);
+          console.log(`  Reasoning: ${suggestion.reasoning}`);
         }
 
         if (suggestion.clusterIds.length < 2) {
@@ -318,31 +435,38 @@ export async function mergeSimilarClusters(): Promise<{
         }
 
         if (suggestion.confidence < 70) {
-          console.log(`  Skipped: Confidence too low (${suggestion.confidence}% < 70%)`);
+          console.log(
+            `  Skipped: Confidence too low (${suggestion.confidence}% < 70%)`,
+          );
           continue;
         }
 
         // Get the clusters to merge
         const clustersToMerge = clustersToAnalyze.filter((c) =>
-          suggestion.clusterIds.includes(c.id)
+          suggestion.clusterIds.includes(c.id),
         );
 
         if (clustersToMerge.length < 2) {
-          console.log(`  Skipped: Could not find matching clusters (found ${clustersToMerge.length})`);
+          console.log(
+            `  Skipped: Could not find matching clusters (found ${clustersToMerge.length})`,
+          );
           continue;
         }
 
         // Pick the cluster with most signals as the primary
         const primaryCluster = clustersToMerge.reduce((best, current) => {
           const bestEvidence = best.evidence as { signalCount?: number } | null;
-          const currentEvidence = current.evidence as { signalCount?: number } | null;
-          return (currentEvidence?.signalCount || 0) > (bestEvidence?.signalCount || 0)
+          const currentEvidence = current.evidence as {
+            signalCount?: number;
+          } | null;
+          return (currentEvidence?.signalCount || 0) >
+            (bestEvidence?.signalCount || 0)
             ? current
             : best;
         });
 
         const secondaryClusters = clustersToMerge.filter(
-          (c) => c.id !== primaryCluster.id
+          (c) => c.id !== primaryCluster.id,
         );
 
         // Move signals from secondary clusters to primary
@@ -374,7 +498,7 @@ export async function mergeSimilarClusters(): Promise<{
         totalThreads++;
 
         console.log(
-          `Merged ${secondaryClusters.length} clusters into "${suggestion.threadName}" (confidence: ${suggestion.confidence}%)`
+          `Merged ${secondaryClusters.length} clusters into "${suggestion.threadName}" (confidence: ${suggestion.confidence}%)`,
         );
       }
     } catch (error) {
@@ -382,6 +506,8 @@ export async function mergeSimilarClusters(): Promise<{
     }
   }
 
-  console.log(`Cluster merging complete: ${totalMerged} merged, ${totalThreads} threads created`);
+  console.log(
+    `Cluster merging complete: ${totalMerged} merged, ${totalThreads} threads created`,
+  );
   return { merged: totalMerged, threads: totalThreads };
 }
