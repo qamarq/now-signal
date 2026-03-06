@@ -1,17 +1,17 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { db, eventClusters, clusterSignals, signals } from "@/lib/db";
-import { eq } from "drizzle-orm";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import { db, eventClusters, clusterSignals, signals } from '@/lib/db';
+import { eq } from 'drizzle-orm';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import {
   AlertTriangle,
   CheckCircle,
@@ -21,7 +21,7 @@ import {
   ArrowLeft,
   ExternalLink,
   Globe,
-} from "lucide-react";
+} from 'lucide-react';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -54,21 +54,21 @@ export default async function EventPage({ params }: Props) {
   const statusConfig = {
     confirmed: {
       icon: CheckCircle,
-      variant: "default" as const,
-      label: "Confirmed",
-      color: "text-green-500",
+      variant: 'default' as const,
+      label: 'Confirmed',
+      color: 'text-green-500',
     },
     early: {
       icon: AlertTriangle,
-      variant: "secondary" as const,
-      label: "Early Signal",
-      color: "text-yellow-500",
+      variant: 'secondary' as const,
+      label: 'Early Signal',
+      color: 'text-yellow-500',
     },
     watch: {
       icon: Eye,
-      variant: "outline" as const,
-      label: "Watch",
-      color: "text-blue-500",
+      variant: 'outline' as const,
+      label: 'Watch',
+      color: 'text-blue-500',
     },
   };
 
@@ -85,7 +85,7 @@ export default async function EventPage({ params }: Props) {
   } | null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 container mx-auto py-6 px-4">
       <div className="flex items-center gap-4">
         <Link href="/dashboard">
           <Button variant="ghost" size="sm">
@@ -109,12 +109,12 @@ export default async function EventPage({ params }: Props) {
                     <Badge variant="outline">{event.category}</Badge>
                   </div>
                   <CardTitle className="text-2xl">
-                    {event.hypothesis || "Developing event..."}
+                    {event.hypothesis || 'Developing event...'}
                   </CardTitle>
                   <CardDescription className="flex items-center gap-4 flex-wrap">
                     <span className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
-                      {event.regions?.join(", ") || "Unknown region"}
+                      {event.regions?.join(', ') || 'Unknown region'}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
@@ -163,8 +163,7 @@ export default async function EventPage({ params }: Props) {
                   {relatedSignals.map(({ signal }) => (
                     <div
                       key={signal.id}
-                      className="flex items-start gap-4 p-4 rounded-lg border"
-                    >
+                      className="flex items-start gap-4 p-4 rounded-lg border">
                       <Globe className="h-5 w-5 mt-0.5 text-muted-foreground" />
                       <div className="flex-1 space-y-1">
                         <div className="flex items-start justify-between gap-2">
@@ -186,8 +185,7 @@ export default async function EventPage({ params }: Props) {
                             href={signal.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1 hover:text-primary"
-                          >
+                            className="flex items-center gap-1 hover:text-primary">
                             <ExternalLink className="h-3 w-3" />
                             View source
                           </a>
@@ -237,7 +235,7 @@ export default async function EventPage({ params }: Props) {
                       Last Notification
                     </div>
                     <div>
-                      {event.lastNotifiedStatus} at{" "}
+                      {event.lastNotifiedStatus} at{' '}
                       {event.lastNotifiedAt.toLocaleString()}
                     </div>
                   </div>
@@ -252,20 +250,21 @@ export default async function EventPage({ params }: Props) {
                 <CardTitle>Evidence</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {evidence.uniqueDomains && evidence.uniqueDomains.length > 0 && (
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground mb-2">
-                      Unique Domains ({evidence.uniqueDomains.length})
+                {evidence.uniqueDomains &&
+                  evidence.uniqueDomains.length > 0 && (
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground mb-2">
+                        Unique Domains ({evidence.uniqueDomains.length})
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {evidence.uniqueDomains.map((domain) => (
+                          <Badge key={domain} variant="secondary">
+                            {domain}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {evidence.uniqueDomains.map((domain) => (
-                        <Badge key={domain} variant="secondary">
-                          {domain}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  )}
                 {evidence.keywords && evidence.keywords.length > 0 && (
                   <div>
                     <div className="text-sm font-medium text-muted-foreground mb-2">
