@@ -1,20 +1,20 @@
+import { model } from '@/lib/ai/model';
+import { shouldNotifyUser } from '@/lib/clustering/scoring';
+import { SENSITIVITY_THRESHOLDS } from '@/lib/constants';
 import {
   db,
-  eventClusters,
-  subscriptions,
   devices,
+  eventClusters,
   notificationLog,
+  subscriptions,
 } from '@/lib/db';
-import { eq, gte, and, or, sql, inArray, not, lt } from 'drizzle-orm';
-import {
-  sendPushNotification,
-  cleanupInvalidTokens,
-} from '@/lib/firebase-admin';
-import { shouldNotifyUser, isMajorUpdate } from '@/lib/clustering/scoring';
-import { SENSITIVITY_THRESHOLDS } from '@/lib/constants';
 import { sendDiscordNotification, sendDiscordSummary } from '@/lib/discord';
+import {
+  cleanupInvalidTokens,
+  sendPushNotification,
+} from '@/lib/firebase-admin';
 import { generateText } from 'ai';
-import { model } from '@/lib/ai/model';
+import { and, eq, gte, lt, not, or, sql } from 'drizzle-orm';
 
 const NOTIFICATION_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 const MAJOR_UPDATE_COOLDOWN_MS = 60 * 60 * 1000; // 60 minutes
@@ -131,9 +131,9 @@ async function processUserNotifications(
   }
 
   const byType = {
-    major_update: notifications.filter((n) => n.type === 'major_update'),
-    confirmed: notifications.filter((n) => n.type === 'confirmed'),
-    early: notifications.filter((n) => n.type === 'early'),
+    major_update: notifications.filter(n => n.type === 'major_update'),
+    confirmed: notifications.filter(n => n.type === 'confirmed'),
+    early: notifications.filter(n => n.type === 'early'),
   };
 
   for (const [type, typeNotifications] of Object.entries(byType)) {
@@ -210,7 +210,7 @@ async function sendSummarizedNotification(
   const count = notifications.length;
 
   const eventsDescription = notifications
-    .map((n) => {
+    .map(n => {
       const regions = n.cluster.regions.join(', ');
       const hypothesis = n.cluster.hypothesis || 'Developing event';
       return `- ${regions}: ${hypothesis} (${n.cluster.confidence}% confidence)`;
@@ -239,7 +239,6 @@ Summary:`;
     const { text } = await generateText({
       model,
       prompt,
-      maxTokens: 150,
     });
 
     const summary = text.trim();
@@ -420,7 +419,7 @@ async function findMatchingUsers(
 
     // Check region match (empty = all)
     if (sub.regions.length > 0) {
-      const hasMatchingRegion = cluster.regions.some((r) =>
+      const hasMatchingRegion = cluster.regions.some(r =>
         sub.regions.includes(r),
       );
       if (!hasMatchingRegion) {
@@ -468,7 +467,7 @@ async function findMatchingUsers(
       matchingUsers.push({
         userId: sub.userId,
         subscription: sub,
-        deviceTokens: userDevices.map((d) => d.fcmToken),
+        deviceTokens: userDevices.map(d => d.fcmToken),
         discordWebhook: sub.discordWebhook,
       });
     }
@@ -507,7 +506,7 @@ async function getDailyNotificationCount(userId: string): Promise<number> {
         gte(notificationLog.sentAt, today),
       ),
     )
-    .then((rows) => Number(rows[0]?.count || 0));
+    .then(rows => Number(rows[0]?.count || 0));
 
   return count;
 }
@@ -536,7 +535,7 @@ async function checkDeduplication(
       ),
     )
     .limit(1)
-    .then((rows) => rows[0]);
+    .then(rows => rows[0]);
 
   return !!existing;
 }
