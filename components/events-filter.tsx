@@ -54,23 +54,31 @@ function EventsFilterInner() {
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 flex-wrap">
-      <Tabs value={currentStatus} onValueChange={handleStatusChange}>
-        <TabsList>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <Tabs
+        value={currentStatus}
+        onValueChange={handleStatusChange}
+        className="w-full sm:w-auto">
+        <TabsList className="w-full sm:w-auto grid grid-cols-5 sm:inline-grid">
           {statusOptions.map((option) => (
-            <TabsTrigger key={option.value} value={option.value}>
+            <TabsTrigger
+              key={option.value}
+              value={option.value}
+              className="text-xs sm:text-sm">
               {option.label}
             </TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
 
-      <div className="flex items-center gap-2">
-        <Label htmlFor="sort-select" className="text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 shrink-0">
+        <Label
+          htmlFor="sort-select"
+          className="text-sm text-muted-foreground whitespace-nowrap">
           Sort by:
         </Label>
         <Select value={currentSort} onValueChange={handleSortChange}>
-          <SelectTrigger id="sort-select" className="w-45">
+          <SelectTrigger id="sort-select" className="w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

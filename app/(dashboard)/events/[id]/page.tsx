@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Globe,
 } from 'lucide-react';
+import { CATEGORIES } from '@/lib/constants';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -61,7 +62,7 @@ export default async function EventPage({ params }: Props) {
     early: {
       icon: AlertTriangle,
       variant: 'secondary' as const,
-      label: 'Early Signal',
+      label: 'Early',
       color: 'text-yellow-500',
     },
     watch: {
@@ -95,52 +96,59 @@ export default async function EventPage({ params }: Props) {
         </Link>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-6">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={config.variant} className="gap-1">
-                      <StatusIcon className="h-3 w-3" />
-                      {config.label}
-                    </Badge>
-                    <Badge variant="outline">{event.category}</Badge>
-                  </div>
-                  <CardTitle className="text-2xl">
-                    {event.hypothesis || 'Developing event...'}
-                  </CardTitle>
-                  <CardDescription className="flex items-center gap-4 flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {event.regions?.join(', ') || 'Unknown region'}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      First seen: {event.firstSeen.toLocaleString()}
-                    </span>
-                  </CardDescription>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={config.variant} className="gap-1">
+                    <StatusIcon className="h-3 w-3" />
+                    {config.label}
+                  </Badge>
+                  <Badge variant="outline">
+                    {CATEGORIES.find((val) => val.value === event.category)
+                      ?.label || event.category}
+                  </Badge>
                 </div>
+                <CardTitle className="text-xl md:text-2xl">
+                  {event.hypothesis || 'Developing event...'}
+                </CardTitle>
+                <CardDescription className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    {event.regions?.join(', ') || 'Unknown region'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    First seen: {event.firstSeen.toLocaleString()}
+                  </span>
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="p-4 rounded-lg bg-muted">
-                  <div className="text-2xl font-bold">{event.confidence}%</div>
-                  <div className="text-sm text-muted-foreground">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                <div className="p-3 sm:p-4 rounded-lg bg-muted">
+                  <div className="text-xl sm:text-2xl font-bold">
+                    {event.confidence}%
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">
                     Confidence
                   </div>
                 </div>
-                <div className="p-4 rounded-lg bg-muted">
-                  <div className="text-2xl font-bold">{event.earlyScore}</div>
-                  <div className="text-sm text-muted-foreground">
+                <div className="p-3 sm:p-4 rounded-lg bg-muted">
+                  <div className="text-xl sm:text-2xl font-bold">
+                    {event.earlyScore}
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">
                     Early Score
                   </div>
                 </div>
-                <div className="p-4 rounded-lg bg-muted">
-                  <div className="text-2xl font-bold">{event.confirmScore}</div>
-                  <div className="text-sm text-muted-foreground">
+                <div className="p-3 sm:p-4 rounded-lg bg-muted">
+                  <div className="text-xl sm:text-2xl font-bold">
+                    {event.confirmScore}
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">
                     Confirm Score
                   </div>
                 </div>
@@ -163,14 +171,16 @@ export default async function EventPage({ params }: Props) {
                   {relatedSignals.map(({ signal }) => (
                     <div
                       key={signal.id}
-                      className="flex items-start gap-4 p-4 rounded-lg border">
-                      <Globe className="h-5 w-5 mt-0.5 text-muted-foreground" />
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-start justify-between gap-2">
+                      className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-4 rounded-lg border">
+                      <Globe className="h-5 w-5 text-muted-foreground shrink-0" />
+                      <div className="flex-1 space-y-2 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                           <h4 className="font-medium line-clamp-2">
                             {signal.title}
                           </h4>
-                          <Badge variant="outline" className="shrink-0">
+                          <Badge
+                            variant="outline"
+                            className="shrink-0 self-start">
                             {signal.source}
                           </Badge>
                         </div>
@@ -179,7 +189,7 @@ export default async function EventPage({ params }: Props) {
                             {signal.content}
                           </p>
                         )}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
                           <span>{signal.publishedAt.toLocaleString()}</span>
                           <a
                             href={signal.url}

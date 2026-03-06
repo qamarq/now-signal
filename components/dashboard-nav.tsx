@@ -20,6 +20,7 @@ import {
   LogOut,
   LayoutDashboard,
   Network,
+  Menu,
 } from 'lucide-react';
 
 interface User {
@@ -46,14 +47,14 @@ export function DashboardNav({ user }: { user: User }) {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="container mx-auto flex h-14 items-center px-4">
-        <div className="flex items-center gap-2 mr-6">
+        <div className="flex items-center gap-2 mr-4 md:mr-6">
           <Globe className="h-6 w-6" />
-          <span className="font-bold text-lg">Now Signal</span>
+          <span className="font-bold text-base md:text-lg">Now Signal</span>
         </div>
 
-        <nav className="flex items-center gap-1 flex-1">
+        <nav className="hidden md:flex items-center gap-1 flex-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -72,7 +73,35 @@ export function DashboardNav({ user }: { user: User }) {
           })}
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex md:hidden items-center gap-2 flex-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  pathname === item.href ||
+                  pathname.startsWith(item.href + '/');
+                return (
+                  <DropdownMenuItem key={item.href} asChild>
+                    <Link
+                      href={item.href}
+                      className={isActive ? 'bg-accent' : ''}>
+                      <Icon className="mr-2 h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="flex items-center gap-2 md:gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
