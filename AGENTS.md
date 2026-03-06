@@ -29,19 +29,25 @@
 - Clusters group signals by category, region, and 4-hour time buckets
 - Sub-clusters (depth 0-4) for breaking news within larger events
 - Parent-child relationships via `parentClusterId` and `depth` fields
-- ≥3 signals from different sources trigger sub-cluster creation
-- AI-powered sub-event detection with 80% confidence threshold
+- ≥2 signals from different sources trigger sub-cluster creation
+- AI-powered thread merging with 60% confidence threshold (aggressive)
+- AI-powered sub-event detection with 85% confidence threshold (selective)
 - Sub-clusters appear separately in UI but show parent relationship
 - Max depth: 4 levels (0=root, 1-4=sub-clusters)
 
 ### Sub-Cluster Detection Logic
 
-1. After clustering, check if cluster has ≥6 signals
-2. Use AI to detect specific sub-events within the cluster
-3. Group signals that are about the exact same incident
-4. Create sub-cluster if ≥3 signals from different domains
-5. Move signals from parent to sub-cluster
-6. Sub-cluster inherits category/region from parent
+Executed in "merge-similar-clusters" step AFTER merging:
+
+1. First: AGGRESSIVELY merge similar clusters into larger threads (≥60% confidence)
+   - Same conflict/war → merge into single parent (e.g., "Middle East Conflict")
+   - Same crisis → merge (e.g., "Energy Crisis in Europe")
+   - Related political saga → merge (e.g., "US Election 2026")
+2. Then: SELECTIVELY detect sub-events within large clusters (≥85% confidence)
+   - Check root clusters (depth=0) with ≥6 signals
+   - Create sub-cluster if ≥2 signals from different domains about EXACT same incident
+   - Example: "Hospital strike in Gaza" as sub-cluster of "Middle East War"
+3. Sub-cluster inherits category/region from parent
 
 ### Data Retention
 
@@ -56,7 +62,7 @@ Supported: conflict, natural_disaster, terrorism, politics, economy, health, tec
 ### Pipeline Flow
 
 1. Ingest RSS feeds, PIZZINT, Google Trends
-2. Cluster signals (auto-creates sub-clusters)
+2. Cluster signals (basic grouping by category/region/time)
 3. Rescore all active clusters
-4. Merge similar clusters using AI
+4. Merge similar clusters + detect sub-clusters
 5. Process notifications

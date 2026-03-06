@@ -1,15 +1,15 @@
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth-server";
-import { db, subscriptions } from "@/lib/db";
-import { eq } from "drizzle-orm";
-import { SubscriptionForm } from "@/components/subscription-form";
-import { NotificationSettings } from "@/components/notification-settings";
-import { Separator } from "@/components/ui/separator";
+import { redirect } from 'next/navigation';
+import { getSession } from '@/lib/auth-server';
+import { db, subscriptions } from '@/lib/db';
+import { eq } from 'drizzle-orm';
+import { SubscriptionForm } from '@/components/subscription-form';
+import { NotificationSettings } from '@/components/notification-settings';
+import { Separator } from '@/components/ui/separator';
 
 export default async function SettingsPage() {
   const session = await getSession();
   if (!session) {
-    redirect("/login");
+    redirect('/login');
   }
 
   // Get or create subscription for user
@@ -28,7 +28,7 @@ export default async function SettingsPage() {
         userId: session.user.id,
         categories: [],
         regions: [],
-        sensitivity: "med",
+        sensitivity: 'med',
         earlyEnabled: false,
         maxPushPerDay: 10,
       })
@@ -37,7 +37,7 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 container mx-auto py-6 px-4 max-w-2xl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">
@@ -55,7 +55,7 @@ export default async function SettingsPage() {
 
         <section>
           <h2 className="text-xl font-semibold mb-4">Notifications</h2>
-          <NotificationSettings 
+          <NotificationSettings
             userId={session.user.id}
             discordWebhook={subscription.discordWebhook}
           />

@@ -42,7 +42,6 @@ export const nowSignalPipeline = inngest.createFunction(
       `Google Trends: ${trendsResult.inserted} new signals (${trendsResult.duplicates} duplicates)`,
     );
 
-    // Step 2: Cluster signals
     const clusterResult = await step.run('cluster-signals', async () => {
       return await clusterSignals();
     });
@@ -50,18 +49,16 @@ export const nowSignalPipeline = inngest.createFunction(
       `Clustering: ${clusterResult.processed} signals, ${clusterResult.clustersCreated} new clusters`,
     );
 
-    // Step 3: Rescore all active clusters
     const rescoreCount = await step.run('rescore-clusters', async () => {
       return await rescoreAllClusters();
     });
     logger.info(`Rescored ${rescoreCount} clusters`);
 
-    // Step 3b: Merge similar clusters using AI semantic matching
     const mergeResult = await step.run('merge-similar-clusters', async () => {
       return await mergeSimilarClusters();
     });
     logger.info(
-      `Cluster merging: ${mergeResult.merged} merged, ${mergeResult.threads} threads`,
+      `Cluster merging: ${mergeResult.merged} merged, ${mergeResult.threads} threads, ${mergeResult.subClustersCreated} sub-clusters`,
     );
 
     // Step 4: Process notifications

@@ -51,7 +51,6 @@ export async function clusterSignals(): Promise<{
   clustersCreated: number;
   clustersUpdated: number;
 }> {
-  // Get recent signals that haven't been clustered (last 6 hours)
   const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
 
   const recentSignals = await db
@@ -60,13 +59,11 @@ export async function clusterSignals(): Promise<{
     .where(gte(signals.publishedAt, sixHoursAgo))
     .orderBy(desc(signals.publishedAt));
 
-  // Get already clustered signal IDs
   const clusteredSignalIds = await db
     .select({ signalId: clusterSignalsTable.signalId })
     .from(clusterSignalsTable)
     .then((rows) => new Set(rows.map((r) => r.signalId)));
 
-  // Filter to unclustered signals only
   const unclusteredSignals = recentSignals.filter(
     (s) => !clusteredSignalIds.has(s.id),
   );
@@ -101,7 +98,7 @@ export async function clusterSignals(): Promise<{
       } else {
         // Create new cluster
         const now = new Date();
-        const ttlExpires = new Date(now.getTime() + 72 * 60 * 60 * 1000); // 72h TTL
+        const ttlExpires = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48h TTL
 
         const [newCluster] = await db
           .insert(eventClusters)
@@ -141,10 +138,7 @@ export async function clusterSignals(): Promise<{
       });
       processed++;
 
-      // Update cluster metadata
       await updateClusterMetadata(clusterId);
-
-      await detectAndCreateSubClusters(clusterId);
     } catch (error) {
       // Ignore duplicate key errors
       if (!(error instanceof Error && error.message.includes('unique'))) {
@@ -274,14 +268,14 @@ async function detectAndCreateSubClusters(
     let created = 0;
 
     for (const subEvent of subEvents) {
-      if (subEvent.signalIds.length < 3) continue;
+      if (subEvent.signalIds.length < 2) continue;
 
       const subSignals = signalList.filter((s) =>
         subEvent.signalIds.includes(s.id),
       );
       const domains = [...new Set(subSignals.map((s) => extractDomain(s.url)))];
 
-      if (domains.length < 3) continue;
+      if (domains.length < 2) continue;
 
       const existingSubCluster = await db
         .select()
@@ -297,7 +291,7 @@ async function detectAndCreateSubClusters(
       if (existingSubCluster) continue;
 
       const now = new Date();
-      const ttlExpires = new Date(now.getTime() + 72 * 60 * 60 * 1000);
+      const ttlExpires = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 
       const [newSubCluster] = await db
         .insert(eventClusters)
@@ -371,6 +365,7 @@ export async function rescoreAllClusters(): Promise<number> {
 export async function mergeSimilarClusters(): Promise<{
   merged: number;
   threads: number;
+  subClustersCreated: number;
 }> {
   const { suggestThreadMerge } = await import('@/lib/ai/matching');
 
@@ -382,7 +377,7 @@ export async function mergeSimilarClusters(): Promise<{
     .orderBy(desc(eventClusters.lastSeen));
 
   if (recentClusters.length < 2) {
-    return { merged: 0, threads: 0 };
+    return { merged: 0, threads: 0, subClustersCreated: 0 };
   }
 
   // Group clusters by category + region for more targeted merging
@@ -434,14 +429,13 @@ export async function mergeSimilarClusters(): Promise<{
           continue;
         }
 
-        if (suggestion.confidence < 70) {
+        if (suggestion.confidence < 60) {
           console.log(
-            `  Skipped: Confidence too low (${suggestion.confidence}% < 70%)`,
+            `  Skipped: Confidence too low (${suggestion.confidence}% < 60%)`,
           );
           continue;
         }
 
-        // Get the clusters to merge
         const clustersToMerge = clustersToAnalyze.filter((c) =>
           suggestion.clusterIds.includes(c.id),
         );
@@ -509,5 +503,27 @@ export async function mergeSimilarClusters(): Promise<{
   console.log(
     `Cluster merging complete: ${totalMerged} merged, ${totalThreads} threads created`,
   );
-  return { merged: totalMerged, threads: totalThreads };
+
+  const allActiveClusters = await db
+    .select()
+    .from(eventClusters)
+    .where(gte(eventClusters.ttlExpiresAt, new Date()));
+
+  let totalSubClusters = 0;
+  for (const cluster of allActiveClusters) {
+    if (cluster.depth === 0) {
+      const subCreated = await detectAndCreateSubClusters(cluster.id);
+      totalSubClusters += subCreated;
+    }
+  }
+
+  console.log(
+    `Sub-cluster detection complete: ${totalSubClusters} sub-clusters created`,
+  );
+
+  return {
+    merged: totalMerged,
+    threads: totalThreads,
+    subClustersCreated: totalSubClusters,
+  };
 }
