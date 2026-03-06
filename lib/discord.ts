@@ -15,8 +15,23 @@ interface DiscordEmbed {
   };
 }
 
+interface DiscordButton {
+  type: 2;
+  style: 5;
+  label: string;
+  url: string;
+}
+
+interface DiscordActionRow {
+  type: 1;
+  components: DiscordButton[];
+}
+
 interface DiscordWebhookPayload {
+  username?: string;
+  avatar_url?: string;
   embeds: DiscordEmbed[];
+  components?: DiscordActionRow[];
 }
 
 export async function sendDiscordNotification(
@@ -26,11 +41,27 @@ export async function sendDiscordNotification(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const embed = createDiscordEmbed(cluster, type);
-    const payload = {
+    const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
+    const eventUrl = `${baseUrl}/events/${cluster.id}`;
+
+    const payload: DiscordWebhookPayload = {
       username: 'Now Signal',
       avatar_url:
         'https://img.freepik.com/premium-vector/satellite-icon-logo-design-illustration_775854-66.jpg',
       embeds: [embed],
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 5,
+              label: 'View Event Details',
+              url: eventUrl,
+            },
+          ],
+        },
+      ],
     };
 
     const response = await fetch(webhookUrl, {
@@ -146,7 +177,7 @@ export async function testDiscordWebhook(
       title: 'Test Connection',
       description:
         'This is a test message from Now Signal. Your Discord webhook is configured correctly!',
-      color: 0x22c55e, // zielony
+      color: 0x22c55e,
       fields: [
         {
           name: 'Status',
@@ -165,11 +196,25 @@ export async function testDiscordWebhook(
       },
     };
 
-    const payload = {
+    const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
+    const payload: DiscordWebhookPayload = {
       username: 'Now Signal',
       avatar_url:
         'https://img.freepik.com/premium-vector/satellite-icon-logo-design-illustration_775854-66.jpg',
       embeds: [testEmbed],
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 5,
+              label: 'Open Now Signal',
+              url: baseUrl,
+            },
+          ],
+        },
+      ],
     };
 
     const response = await fetch(webhookUrl, {
@@ -192,6 +237,95 @@ export async function testDiscordWebhook(
     return { success: true };
   } catch (error) {
     console.error('Error testing Discord webhook:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+export async function sendDiscordSummary(
+  webhookUrl: string,
+  summary: string,
+  count: number,
+  type: 'major_update' | 'confirmed' | 'early',
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const colors = {
+      major_update: 0x8b5cf6,
+      confirmed: 0x3b82f6,
+      early: 0xf97316,
+    };
+
+    const typeLabels = {
+      major_update: 'Event Updates',
+      confirmed: 'New Confirmed Events',
+      early: 'Early Signals',
+    };
+
+    const embed: DiscordEmbed = {
+      title: `${count} ${typeLabels[type]}`,
+      description: summary,
+      color: colors[type],
+      fields: [
+        {
+          name: 'Total Events',
+          value: String(count),
+          inline: true,
+        },
+        {
+          name: 'Type',
+          value: typeLabels[type],
+          inline: true,
+        },
+      ],
+      timestamp: new Date().toISOString(),
+      footer: {
+        text: 'Now Signal - AI Summary',
+      },
+    };
+
+    const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
+    const payload: DiscordWebhookPayload = {
+      username: 'Now Signal',
+      avatar_url:
+        'https://img.freepik.com/premium-vector/satellite-icon-logo-design-illustration_775854-66.jpg',
+      embeds: [embed],
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 5,
+              label: 'View All Events',
+              url: `${baseUrl}/dashboard`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Discord webhook error:', errorText);
+      return {
+        success: false,
+        error: `Discord API error: ${response.status} ${response.statusText}`,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending Discord summary:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
